@@ -1,0 +1,11 @@
+name: morning-briefing
+trigger:
+  type: geofence_enter
+  filter: company
+reaction:
+  agent: morning-briefing-agent
+  approval: auto
+  channel: push
+  promptContext: >-
+    Create a concise morning briefing for the user entering the company geofence.
+    Include top priorities and immediate actions.
