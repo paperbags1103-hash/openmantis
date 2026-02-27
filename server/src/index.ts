@@ -1,15 +1,52 @@
 import "dotenv/config";
 import express from "express";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import YAML from "yaml";
 import { EventBus } from "./event-bus/bus.js";
 import { SQLiteEventStore } from "./event-bus/store.js";
 import { RuleEngine } from "./rules/engine.js";
 import { Dispatcher } from "./reactions/dispatcher.js";
 import { createRoutes } from "./api/routes.js";
+import type { Watcher } from "./watchers/base.js";
+import { NewsWatcher } from "./watchers/news.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+interface FeedWatcherConfig {
+  name: string;
+  url: string;
+  keywords: string[];
+}
+
+interface NewsWatcherConfig {
+  name: string;
+  type: string;
+  feeds: FeedWatcherConfig[];
+  poll_interval?: string | number;
+}
+
+function parsePollIntervalMs(value: string | number | undefined): number {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const match = value.trim().match(/^(\d+)\s*([smh])$/i);
+    const amountText = match?.[1];
+    const unitText = match?.[2];
+    if (amountText && unitText) {
+      const amount = Number(amountText);
+      const unit = unitText.toLowerCase();
+      const multiplier = unit === "h" ? 60 * 60 * 1000 : unit === "m" ? 60 * 1000 : 1000;
+      return amount * multiplier;
+    }
+  }
+
+  return 5 * 60 * 1000;
+}
 
 async function bootstrap(): Promise<void> {
   const app = express();
@@ -20,6 +57,20 @@ async function bootstrap(): Promise<void> {
 
   const ruleEngine = new RuleEngine();
   await ruleEngine.loadRules(join(__dirname, "config", "rules"));
+  const watchers: Watcher[] = [];
+
+  const watcherConfigPath = join(__dirname, "config", "watchers", "ai-news.yaml");
+  const watcherConfigText = await readFile(watcherConfigPath, "utf8");
+  const watcherConfig = YAML.parse(watcherConfigText) as NewsWatcherConfig;
+  const pollIntervalMs = parsePollIntervalMs(watcherConfig.poll_interval);
+
+  for (const feed of watcherConfig.feeds ?? []) {
+    watchers.push(new NewsWatcher(feed.name, feed.url, feed.keywords, bus, pollIntervalMs));
+  }
+
+  for (const watcher of watchers) {
+    await watcher.start();
+  }
 
   const dispatcher = new Dispatcher(
     process.env.GROQ_API_KEY,
@@ -44,9 +95,28 @@ async function bootstrap(): Promise<void> {
   app.use(createRoutes(bus, store));
 
   const port = Number(process.env.PORT ?? 3000);
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`OpenMantis server listening on http://localhost:${port}`);
   });
+
+  let shuttingDown = false;
+  const shutdown = (): void => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+
+    for (const watcher of watchers) {
+      watcher.stop();
+    }
+
+    server.close(() => {
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 bootstrap().catch((error) => {

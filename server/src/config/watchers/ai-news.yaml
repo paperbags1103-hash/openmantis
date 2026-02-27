@@ -1,0 +1,10 @@
+name: "AI 뉴스"
+type: news
+feeds:
+  - name: "TechCrunch AI"
+    url: "https://techcrunch.com/category/artificial-intelligence/feed/"
+    keywords: ["OpenAI", "Anthropic", "Claude", "GPT", "LLM", "AI agent"]
+  - name: "Hacker News"
+    url: "https://hnrss.org/frontpage"
+    keywords: ["LLM", "AI agent", "Claude", "OpenAI", "Anthropic"]
+poll_interval: 5m
