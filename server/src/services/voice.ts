@@ -1,5 +1,3 @@
-import FormData from "form-data";
-
 type VoiceIntent = {
   text: string;
   action: "none" | "create_rule" | "confirm" | "reject";
@@ -8,31 +6,28 @@ type VoiceIntent = {
 
 function getGroqApiKey(): string {
   const key = process.env.GROQ_API_KEY;
-  if (!key) {
-    throw new Error("GROQ_API_KEY is not configured");
-  }
+  if (!key) throw new Error("GROQ_API_KEY is not configured");
   return key;
 }
 
 export async function transcribeAudio(buffer: Buffer, mimetype: string): Promise<string> {
   const apiKey = getGroqApiKey();
-  const form = new FormData();
 
-  form.append("file", buffer, {
-    filename: "voice-input.webm",
-    contentType: mimetype || "audio/webm"
-  });
+  // Node.js 18+ 내장 FormData + Blob 사용 (form-data 패키지 호환 이슈 우회)
+  const mime = mimetype || "audio/m4a";
+  const ext = mime.includes("m4a") ? "m4a" : mime.includes("wav") ? "wav" : "webm";
+  const blob = new Blob([buffer], { type: mime });
+
+  const form = new FormData();
+  form.append("file", blob, `voice.${ext}`);
   form.append("model", "whisper-large-v3");
   form.append("language", "ko");
   form.append("response_format", "json");
 
   const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      ...form.getHeaders()
-    },
-    body: form as unknown as BodyInit
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
   });
 
   if (!response.ok) {
