@@ -22,7 +22,7 @@ async function bootstrap(): Promise<void> {
   await ruleEngine.loadRules(join(__dirname, "config", "rules"));
 
   const dispatcher = new Dispatcher(
-    process.env.ANTHROPIC_API_KEY,
+    process.env.GROQ_API_KEY,
     process.env.EXPO_PUSH_TOKEN
   );
 
