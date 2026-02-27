@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "OpenMantis",
+    "slug": "openmantis",
+    "scheme": "openmantis",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "plugins": ["expo-router"],
+    "ios": {
+      "bundleIdentifier": "com.openmantis.app"
+    },
+    "android": {
+      "package": "com.openmantis.app"
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}
