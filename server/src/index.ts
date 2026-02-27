@@ -41,7 +41,7 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  app.use(createRoutes(bus));
+  app.use(createRoutes(bus, store));
 
   const port = Number(process.env.PORT ?? 3000);
   app.listen(port, () => {

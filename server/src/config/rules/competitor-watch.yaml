@@ -1,0 +1,20 @@
+name: "경쟁사 모니터링"
+description: "경쟁사 관련 뉴스 감지 시 전략 분석"
+
+trigger:
+  type: simple
+  condition:
+    event_type: news_match
+    filter: "source.startsWith(\"watcher/news\")"
+
+reaction:
+  agent: "strategy_analyst"
+  approval: notify
+  channel: push
+  promptContext: |
+    경쟁사 관련 뉴스가 감지되었습니다.
+    제목: {data.title}
+    링크: {data.link}
+    
+    이 뉴스가 비즈니스 전략에 미치는 영향을 분석하고,
+    대응 방안을 2-3가지 제안해주세요.

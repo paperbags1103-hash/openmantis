@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { normalizeEvent } from "../event-bus/normalizer.js";
 import type { EventBus } from "../event-bus/bus.js";
+import type { SQLiteEventStore } from "../event-bus/store.js";
 
 const InboundEventSchema = z.object({
   type: z.string().min(1),
@@ -11,11 +12,17 @@ const InboundEventSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
-export function createRoutes(eventBus: EventBus): Router {
+export function createRoutes(eventBus: EventBus, store: SQLiteEventStore): Router {
   const router = Router();
 
   router.get("/api/health", (_req, res) => {
-    res.json({ ok: true });
+    res.json({ ok: true, version: "0.1.0" });
+  });
+
+  router.get("/api/events/recent", (req, res) => {
+    const limit = Math.min(Number(req.query.limit ?? 50), 200);
+    const events = store.getRecentEvents(limit);
+    res.json({ ok: true, count: events.length, events });
   });
 
   router.post("/api/events", async (req, res) => {
