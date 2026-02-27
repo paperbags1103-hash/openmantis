@@ -5,7 +5,9 @@
     "scheme": "openmantis",
     "version": "1.0.0",
     "orientation": "portrait",
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router"
+    ],
     "ios": {
       "bundleIdentifier": "com.openmantis.app"
     },
@@ -16,6 +18,7 @@
       "router": {
         "origin": false
       }
-    }
+    },
+    "sdkVersion": "54.0.0"
   }
 }
