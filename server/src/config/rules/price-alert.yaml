@@ -1,0 +1,16 @@
+name: "가격 급변 알림"
+description: "암호화폐 가격 급변 시 시장 분석"
+trigger:
+  type: simple
+  condition:
+    event_type: price_change
+    filter: "data.changePercent > 3 || data.changePercent < -3"
+reaction:
+  agent: "market_analyst"
+  approval: notify
+  channel: push
+  promptContext: |
+    {data.symbol} 가격이 {data.changePercent}% 변동했습니다.
+    현재가: ${data.price}
+    이전가: ${data.previousPrice}
+    이 가격 변동의 원인과 단기 전망을 2-3문장으로 분석해주세요.

@@ -1,0 +1,11 @@
+name: "암호화폐 가격"
+type: price
+assets:
+  - id: bitcoin
+    symbol: BTC
+  - id: ethereum
+    symbol: ETH
+  - id: solana
+    symbol: SOL
+threshold_pct: 3
+poll_interval: 60s

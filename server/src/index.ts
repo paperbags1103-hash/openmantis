@@ -11,6 +11,8 @@ import { Dispatcher } from "./reactions/dispatcher.js";
 import { createRoutes } from "./api/routes.js";
 import type { Watcher } from "./watchers/base.js";
 import { NewsWatcher } from "./watchers/news.js";
+import { PriceWatcher } from "./watchers/price.js";
+import { WebChangeWatcher } from "./watchers/web-change.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,6 +27,19 @@ interface NewsWatcherConfig {
   name: string;
   type: string;
   feeds: FeedWatcherConfig[];
+  poll_interval?: string | number;
+}
+
+interface PriceAssetConfig {
+  id: string;
+  symbol: string;
+}
+
+interface PriceWatcherConfig {
+  name: string;
+  type: string;
+  assets: PriceAssetConfig[];
+  threshold_pct?: number;
   poll_interval?: string | number;
 }
 
@@ -66,6 +81,32 @@ async function bootstrap(): Promise<void> {
 
   for (const feed of watcherConfig.feeds ?? []) {
     watchers.push(new NewsWatcher(feed.name, feed.url, feed.keywords, bus, pollIntervalMs));
+  }
+
+  const priceWatcherConfigPath = join(__dirname, "config", "watchers", "crypto-prices.yaml");
+  const priceWatcherConfigText = await readFile(priceWatcherConfigPath, "utf8");
+  const priceWatcherConfig = YAML.parse(priceWatcherConfigText) as PriceWatcherConfig;
+  const pricePollIntervalMs = parsePollIntervalMs(priceWatcherConfig.poll_interval);
+  const thresholdPct =
+    typeof priceWatcherConfig.threshold_pct === "number"
+      ? priceWatcherConfig.threshold_pct
+      : undefined;
+
+  watchers.push(
+    new PriceWatcher(
+      priceWatcherConfig.assets ?? [],
+      bus,
+      thresholdPct,
+      pricePollIntervalMs
+    )
+  );
+
+  const webChangeName = process.env.WEB_CHANGE_NAME;
+  const webChangeUrl = process.env.WEB_CHANGE_URL;
+  const webChangeIntervalMs = parsePollIntervalMs(process.env.WEB_CHANGE_POLL_INTERVAL);
+
+  if (webChangeName && webChangeUrl) {
+    watchers.push(new WebChangeWatcher(webChangeName, webChangeUrl, bus, webChangeIntervalMs));
   }
 
   for (const watcher of watchers) {

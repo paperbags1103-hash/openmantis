@@ -1,4 +1,4 @@
-export const DEFAULT_SERVER_URL = "http://localhost:3001";
+export const DEFAULT_SERVER_URL = "http://localhost:3002";
 
 export const EVENT_SEVERITY = {
   high: "#ef4444",

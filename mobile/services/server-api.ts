@@ -1,43 +1,48 @@
 import axios from "axios";
-import { DEFAULT_SERVER_URL } from "../constants";
+import { useSettingsStore } from "../store/settings";
 
-let activeServerUrl =
-  process.env.EXPO_PUBLIC_SERVER_URL || process.env.SERVER_URL || DEFAULT_SERVER_URL;
-
-const api = axios.create({
-  baseURL: activeServerUrl,
-  timeout: 8000
-});
-
-export const setServerUrl = (url: string) => {
-  activeServerUrl = url;
-  api.defaults.baseURL = url;
-};
-
-export type PostEventInput = {
+export interface AgentEvent {
+  id: string;
   type: string;
   source: string;
-  severity?: "high" | "medium" | "low";
+  timestamp: string;
+  severity?: string;
   data?: Record<string, unknown>;
-};
+  metadata?: Record<string, unknown>;
+}
 
-export const postEvent = async (event: PostEventInput) => {
-  const { data } = await api.post("/api/events", event);
-  return data;
-};
+export interface PostEventPayload {
+  type: string;
+  source: string;
+  severity?: string;
+  data?: Record<string, unknown>;
+}
 
-export const getRecentEvents = async () => {
-  const { data } = await api.get("/api/events/recent");
-  return data as Array<{
-    id: string;
-    type: string;
-    severity: "high" | "medium" | "low";
-    createdAt: string;
-    data?: Record<string, unknown>;
-  }>;
-};
+function getClient() {
+  const serverUrl = useSettingsStore.getState().serverUrl;
+  return axios.create({ baseURL: serverUrl, timeout: 10000 });
+}
 
-export const approveReaction = async (id: string, decision: "approve" | "reject") => {
-  const { data } = await api.post(`/api/reactions/${id}/decision`, { decision });
-  return data;
-};
+export async function postEvent(payload: PostEventPayload) {
+  const client = getClient();
+  const res = await client.post("/api/events", payload);
+  return res.data;
+}
+
+export async function getRecentEvents(limit = 50): Promise<AgentEvent[]> {
+  const client = getClient();
+  const res = await client.get(`/api/events/recent?limit=${limit}`);
+  return res.data.events ?? [];
+}
+
+export async function getHealth() {
+  const client = getClient();
+  const res = await client.get("/api/health");
+  return res.data;
+}
+
+export async function approveReaction(reactionId: string, decision: "approved" | "rejected" | "deferred") {
+  const client = getClient();
+  const res = await client.post(`/api/reactions/${reactionId}/approve`, { decision });
+  return res.data;
+}

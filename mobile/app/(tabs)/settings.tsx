@@ -1,78 +1,49 @@
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
-import { GeofenceZone, startGeofencing, stopGeofencing } from "../../services/location-watcher";
-import { registerForPushNotifications } from "../../services/push-handler";
-import { setServerUrl } from "../../services/server-api";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { getHealth } from "../../services/server-api";
 import { useSettingsStore } from "../../store/settings";
 
-const zones: GeofenceZone[] = [
-  { name: "company", latitude: 37.7858, longitude: -122.4064, radius: 250 },
-  { name: "home", latitude: 37.7599, longitude: -122.4148, radius: 200 }
-];
-
 export default function SettingsScreen() {
-  const { serverUrl, locationEnabled, pushEnabled, setLocationEnabled, setPushEnabled, setServerUrl: saveServerUrl } =
-    useSettingsStore();
+  const {
+    serverUrl,
+    locationEnabled,
+    connectionStatus,
+    setServerUrl,
+    setLocationEnabled,
+    setConnectionStatus
+  } = useSettingsStore();
+
   const [serverInput, setServerInput] = useState(serverUrl);
+  const [testResult, setTestResult] = useState<string>("");
 
   useEffect(() => {
-    setServerUrl(serverUrl);
+    setServerInput(serverUrl);
   }, [serverUrl]);
 
-  const toggleLocation = async (value: boolean) => {
-    setLocationEnabled(value);
-    if (value) {
-      try {
-        await startGeofencing(zones);
-      } catch (error) {
-        console.warn("Unable to start geofencing", error);
-        setLocationEnabled(false);
-      }
-    } else {
-      await stopGeofencing();
-    }
+  const onSaveServerUrl = () => {
+    const cleaned = serverInput.trim();
+    setServerUrl(cleaned);
+    setConnectionStatus("unknown");
+    setTestResult("");
   };
 
-  const togglePush = async (value: boolean) => {
-    setPushEnabled(value);
-    if (value) {
-      try {
-        await registerForPushNotifications();
-      } catch (error) {
-        console.warn("Unable to register push", error);
-        setPushEnabled(false);
-      }
+  const onTestConnection = async () => {
+    try {
+      await getHealth();
+      setConnectionStatus("connected");
+      setTestResult("✅ 연결됨");
+    } catch (error) {
+      console.warn("Connection test failed", error);
+      setConnectionStatus("error");
+      setTestResult("❌ 연결 실패");
     }
   };
-
-  const geofenceRows = useMemo(
-    () =>
-      zones.map((zone) => (
-        <View key={zone.name} style={styles.zoneRow}>
-          <Text style={styles.zoneName}>{zone.name}</Text>
-          <Text style={styles.zoneCoords}>
-            {zone.latitude}, {zone.longitude}
-          </Text>
-        </View>
-      )),
-    []
-  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
+      <Text style={styles.title}>설정</Text>
 
-      <View style={styles.row}>
-        <Text style={styles.label}>Location Sensor</Text>
-        <Switch value={locationEnabled} onValueChange={toggleLocation} />
-      </View>
-
-      <View style={styles.row}>
-        <Text style={styles.label}>Push Notifications</Text>
-        <Switch value={pushEnabled} onValueChange={togglePush} />
-      </View>
-
-      <Text style={styles.label}>Server URL</Text>
+      <Text style={styles.label}>서버 URL</Text>
       <TextInput
         value={serverInput}
         onChangeText={setServerInput}
@@ -80,19 +51,34 @@ export default function SettingsScreen() {
         autoCorrect={false}
         style={styles.input}
       />
-      <Pressable
-        onPress={() => {
-          const cleaned = serverInput.trim();
-          saveServerUrl(cleaned);
-          setServerUrl(cleaned);
-        }}
-        style={styles.button}
-      >
-        <Text style={styles.buttonText}>Save URL</Text>
+
+      <Pressable onPress={onSaveServerUrl} style={styles.button}>
+        <Text style={styles.buttonText}>저장</Text>
       </Pressable>
 
-      <Text style={styles.sectionTitle}>Geofences</Text>
-      {geofenceRows}
+      <Pressable onPress={onTestConnection} style={styles.buttonSecondary}>
+        <Text style={styles.buttonSecondaryText}>연결 테스트</Text>
+      </Pressable>
+
+      {!!testResult && <Text style={styles.result}>{testResult}</Text>}
+
+      <Text style={styles.connectionInfo}>현재 상태: {connectionStatus}</Text>
+
+      <Text style={styles.label}>위치 센서 (UI 전용)</Text>
+      <View style={styles.toggleWrap}>
+        <Pressable
+          onPress={() => setLocationEnabled(true)}
+          style={[styles.toggleOption, locationEnabled && styles.toggleOptionActive]}
+        >
+          <Text style={[styles.toggleText, locationEnabled && styles.toggleTextActive]}>ON</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setLocationEnabled(false)}
+          style={[styles.toggleOption, !locationEnabled && styles.toggleOptionActive]}
+        >
+          <Text style={[styles.toggleText, !locationEnabled && styles.toggleTextActive]}>OFF</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -100,8 +86,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#ffffff" },
   title: { fontSize: 24, fontWeight: "700", marginBottom: 16 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  label: { fontSize: 16, fontWeight: "600", marginBottom: 8 },
+  label: { fontSize: 16, fontWeight: "600", marginBottom: 8, marginTop: 8 },
   input: {
     borderWidth: 1,
     borderColor: "#d1d5db",
@@ -115,18 +100,36 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
-    marginBottom: 20
+    marginBottom: 10
   },
   buttonText: { color: "#ffffff", fontWeight: "700" },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
-  zoneRow: {
-    backgroundColor: "#f9fafb",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+  buttonSecondary: {
+    backgroundColor: "#e5e7eb",
+    paddingVertical: 10,
     borderRadius: 8,
-    padding: 10,
-    marginBottom: 8
+    alignItems: "center"
   },
-  zoneName: { fontWeight: "700", textTransform: "capitalize", marginBottom: 2 },
-  zoneCoords: { color: "#4b5563" }
+  buttonSecondaryText: { color: "#111827", fontWeight: "700" },
+  result: { marginTop: 10, fontSize: 16, fontWeight: "700" },
+  connectionInfo: { marginTop: 8, color: "#4b5563" },
+  toggleWrap: {
+    marginTop: 8,
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 8,
+    overflow: "hidden"
+  },
+  toggleOption: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    backgroundColor: "#ffffff"
+  },
+  toggleOptionActive: {
+    backgroundColor: "#111827"
+  },
+  toggleText: { fontWeight: "700", color: "#111827" },
+  toggleTextActive: { color: "#ffffff" }
 });
