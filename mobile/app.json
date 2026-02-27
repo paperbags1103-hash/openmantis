@@ -32,7 +32,6 @@
       "expo-router"
     ],
     "scheme": "openmantis",
-    "sdkVersion": "54.0.0",
-    "newArchEnabled": false
+    "sdkVersion": "54.0.0"
   }
 }
