@@ -2,23 +2,35 @@
   "expo": {
     "name": "OpenMantis",
     "slug": "openmantis",
-    "scheme": "openmantis",
     "version": "1.0.0",
     "orientation": "portrait",
-    "plugins": [
-      "expo-router"
-    ],
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
+      "supportsTablet": true,
       "bundleIdentifier": "com.openmantis.app"
     },
     "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
       "package": "com.openmantis.app"
     },
-    "extra": {
-      "router": {
-        "origin": false
-      }
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
-    "sdkVersion": "54.0.0"
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "openmantis"
   }
 }
