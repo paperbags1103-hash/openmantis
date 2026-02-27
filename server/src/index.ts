@@ -8,6 +8,7 @@ import { EventBus } from "./event-bus/bus.js";
 import { SQLiteEventStore } from "./event-bus/store.js";
 import { RuleEngine } from "./rules/engine.js";
 import { Dispatcher } from "./reactions/dispatcher.js";
+import { MemoryService } from "./services/memory.js";
 import { createRoutes } from "./api/routes.js";
 import type { Watcher } from "./watchers/base.js";
 import { NewsWatcher } from "./watchers/news.js";
@@ -67,8 +68,12 @@ async function bootstrap(): Promise<void> {
   const app = express();
   app.use(express.json({ limit: "50mb" }));
 
-  const store = new SQLiteEventStore(join(__dirname, "..", "events.db"));
+  const dbPath = join(__dirname, "..", "events.db");
+  const store = new SQLiteEventStore(dbPath);
   const bus = new EventBus(store);
+
+  // ── MemoryService 초기화 (같은 DB 파일 공유)
+  const memoryService = new MemoryService(dbPath);
 
   const ruleEngine = new RuleEngine();
   await ruleEngine.loadRules(join(__dirname, "config", "rules"));
@@ -113,10 +118,8 @@ async function bootstrap(): Promise<void> {
     await watcher.start();
   }
 
-  const dispatcher = new Dispatcher(
-    process.env.GROQ_API_KEY,
-    process.env.EXPO_PUSH_TOKEN
-  );
+  // ── Dispatcher v2: Groq 제거, OpenClaw webhook 사용
+  const dispatcher = new Dispatcher(memoryService);
 
   bus.subscribe(async (event) => {
     const matches = ruleEngine.evaluate(event);
@@ -124,8 +127,17 @@ async function bootstrap(): Promise<void> {
     for (const rule of matches) {
       try {
         const result = await dispatcher.dispatch(rule, event);
+
+        // 디스패치 기록 저장
+        memoryService.recordDispatch({
+          eventId: event.id,
+          ruleName: rule.name,
+          openclawSent: result.sent,
+          pushSent: result.pushed,
+        });
+
         console.log(
-          `[reaction] rule=${rule.name} event=${event.id} pushed=${result.pushed} response=${result.responseText}`
+          `[reaction] rule=${rule.name} event=${event.id} sent=${result.sent} pushed=${result.pushed}`
         );
       } catch (error) {
         console.error(`[reaction-error] rule=${rule.name} event=${event.id}`, error);
@@ -133,18 +145,20 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  app.use(createRoutes(bus, store));
+  // ── 라우터: memoryService 전달 (push 엔드포인트용)
+  app.use(createRoutes(bus, store, memoryService));
 
   const port = Number(process.env.PORT ?? 3000);
   const server = app.listen(port, () => {
-    console.log(`OpenMantis server listening on http://localhost:${port}`);
+    console.log(`OpenMantis 서버 시작 (port ${port})`);
+    console.log(`OpenClaw 게이트웨이: ${process.env.OPENCLAW_GATEWAY_URL ?? "http://127.0.0.1:18789"}`);
+    console.log(`Push 엔드포인트: http://localhost:${port}/api/push`);
+    console.log(`신호 요약: http://localhost:${port}/api/memory/today`);
   });
 
   let shuttingDown = false;
   const shutdown = (): void => {
-    if (shuttingDown) {
-      return;
-    }
+    if (shuttingDown) return;
     shuttingDown = true;
 
     for (const watcher of watchers) {
