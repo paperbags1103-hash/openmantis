@@ -43,7 +43,7 @@ export function useVoiceRecorder() {
 
       // base64로 읽어서 JSON으로 전송 (RN FormData + multer 호환 이슈 우회)
       const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: "base64" as any,
       });
 
       const serverUrl = useSettingsStore.getState().serverUrl;
