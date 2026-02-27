@@ -43,51 +43,63 @@ export async function processVoiceIntent(
   transcript: string,
   context?: string
 ): Promise<VoiceIntent> {
-  const apiKey = getGroqApiKey();
-  const systemPrompt =
-    'You are OpenMantis agent. Analyze user voice input. Respond in JSON: {"text": "reply to user", "action": "none|create_rule|confirm|reject", "payload": {}}. "승인"/"확인"/"ㅇㅇ" -> confirm, "거절"/"취소"/"ㄴㄴ" -> reject, rule creation requests -> create_rule, else -> none';
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  const userContent = context
-    ? `Context:\n${context}\n\nTranscript:\n${transcript}`
-    : transcript;
+  if (anthropicKey) {
+    // Claude로 처리
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const client = new Anthropic({ apiKey: anthropicKey });
+
+    const systemPrompt = `당신은 치레(Chire)입니다. 아부지의 AI 어시스턴트. OpenMantis 에이전트 OS를 통한 음성 대화입니다.
+자연스럽고 친근하게 한국어로 대답하세요. 간결하게 (2-3문장).
+특수 액션이 필요하면 마지막에 [ACTION:confirm], [ACTION:reject], [ACTION:create_rule] 추가.`;
+
+    const userContent = context
+      ? `컨텍스트: ${context}\n\n사용자: ${transcript}`
+      : transcript;
+
+    const msg = await client.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 300,
+      messages: [{ role: "user", content: userContent }],
+      system: systemPrompt,
+    });
+
+    const text = msg.content[0].type === "text" ? msg.content[0].text : "";
+    const action = text.includes("[ACTION:confirm]") ? "confirm"
+      : text.includes("[ACTION:reject]") ? "reject"
+      : text.includes("[ACTION:create_rule]") ? "create_rule"
+      : "none";
+
+    return {
+      text: text.replace(/\[ACTION:\w+\]/g, "").trim(),
+      action,
+    };
+  }
+
+  // Groq 폴백
+  const apiKey = getGroqApiKey();
+  const userContent = context ? `Context:\n${context}\n\nTranscript:\n${transcript}` : transcript;
 
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: '당신은 AI 어시스턴트입니다. JSON으로 응답: {"text": "응답", "action": "none"}' },
         { role: "user", content: userContent }
       ]
     })
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to process voice intent (${response.status}): ${errorText}`);
-  }
-
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
+  const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
   const rawContent = data.choices?.[0]?.message?.content;
-  if (!rawContent) {
-    return { text: "죄송해요. 다시 말씀해 주세요.", action: "none" };
-  }
+  if (!rawContent) return { text: "죄송해요. 다시 말씀해 주세요.", action: "none" };
 
   try {
-    const parsed = JSON.parse(rawContent) as VoiceIntent;
-    return {
-      text: parsed.text ?? "",
-      action: parsed.action ?? "none",
-      payload: parsed.payload
-    };
+    return JSON.parse(rawContent) as VoiceIntent;
   } catch {
     return { text: rawContent, action: "none" };
   }
