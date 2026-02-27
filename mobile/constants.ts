@@ -4,9 +4,13 @@ import Constants from "expo-constants";
 // 프로덕션: 실제 서버 URL로 교체
 function getDefaultServerUrl(): string {
   if (__DEV__) {
-    const hostUri = Constants.expoConfig?.hostUri;
-    if (hostUri) {
-      const host = hostUri.split(":")[0];
+    // expo-constants에서 개발 서버 호스트 추출
+    const debuggerHost =
+      (Constants as any).manifest?.debuggerHost ||
+      (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ||
+      Constants.expoConfig?.hostUri;
+    if (debuggerHost) {
+      const host = debuggerHost.split(":")[0];
       return `http://${host}:3002`;
     }
   }

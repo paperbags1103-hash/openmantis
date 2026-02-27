@@ -1,16 +1,11 @@
 name: "AI 뉴스 알림"
-description: "AI 관련 주요 뉴스 감지 시 분석"
 trigger:
-  type: simple
-  condition:
-    event_type: news_match
-    filter: "source.startsWith(\"watcher/news\")"
+  type: news_match
+  filter: "watcher/news"
 reaction:
   agent: "news_analyst"
-  approval: notify
-  channel: telegram
-  promptContext: |
-    AI 관련 뉴스가 감지되었습니다.
-    제목: {data.title}
-    링크: {data.link}
-    이 뉴스의 핵심 내용과 AI/기술 업계에 미치는 영향을 2-3문장으로 요약해주세요.
+  approval: auto
+  channel: push
+  promptContext: >-
+    AI 관련 뉴스가 감지되었습니다. 제목: {data.title} / 링크: {data.link}
+    이 뉴스의 핵심 내용과 AI/기술 업계에 미치는 영향을 2-3문장으로 한국어로 요약해주세요.
