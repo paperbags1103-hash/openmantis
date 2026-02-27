@@ -3,6 +3,7 @@ import { z } from "zod";
 import { normalizeEvent } from "../event-bus/normalizer.js";
 import type { EventBus } from "../event-bus/bus.js";
 import type { SQLiteEventStore } from "../event-bus/store.js";
+import { createVoiceRouter } from "./voice-routes.js";
 
 const InboundEventSchema = z.object({
   type: z.string().min(1),
@@ -14,6 +15,7 @@ const InboundEventSchema = z.object({
 
 export function createRoutes(eventBus: EventBus, store: SQLiteEventStore): Router {
   const router = Router();
+  router.use(createVoiceRouter());
 
   router.get("/api/health", (_req, res) => {
     res.json({ ok: true, version: "0.1.0" });
