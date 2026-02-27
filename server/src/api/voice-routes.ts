@@ -1,47 +1,34 @@
 import { Router } from "express";
-import multer from "multer";
 import { processVoiceIntent, transcribeAudio } from "../services/voice.js";
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }
-});
 
 export function createVoiceRouter(): Router {
   const router = Router();
 
-  router.post("/api/voice/transcribe", upload.single("audio"), async (req, res) => {
+  // base64 JSON 방식 (React Native FormData 호환 이슈 우회)
+  router.post("/api/voice/transcribe", async (req, res) => {
     try {
-      const file = req.file;
-      if (!file) {
-        return res.status(400).json({ error: "Audio file is required" });
-      }
-
-      const transcript = await transcribeAudio(file.buffer, file.mimetype);
+      const { audio, mimeType } = req.body ?? {};
+      if (!audio) return res.status(400).json({ error: "Audio file is required" });
+      const buffer = Buffer.from(audio, "base64");
+      const transcript = await transcribeAudio(buffer, mimeType ?? "audio/m4a");
       return res.json({ transcript });
     } catch (error) {
       console.error("Voice transcribe error", error);
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return res.status(500).json({ error: message });
+      return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown" });
     }
   });
 
-  router.post("/api/voice/chat", upload.single("audio"), async (req, res) => {
+  router.post("/api/voice/chat", async (req, res) => {
     try {
-      const file = req.file;
-      if (!file) {
-        return res.status(400).json({ error: "Audio file is required" });
-      }
-
-      const context = typeof req.body?.context === "string" ? req.body.context : undefined;
-      const transcript = await transcribeAudio(file.buffer, file.mimetype);
+      const { audio, mimeType, context } = req.body ?? {};
+      if (!audio) return res.status(400).json({ error: "Audio file is required" });
+      const buffer = Buffer.from(audio, "base64");
+      const transcript = await transcribeAudio(buffer, mimeType ?? "audio/m4a");
       const response = await processVoiceIntent(transcript, context);
-
       return res.json({ transcript, response });
     } catch (error) {
       console.error("Voice chat error", error);
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return res.status(500).json({ error: message });
+      return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown" });
     }
   });
 

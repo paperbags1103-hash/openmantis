@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system";
 import { useSettingsStore } from "../store/settings";
 
 export function useVoiceRecorder() {
@@ -40,13 +41,16 @@ export function useVoiceRecorder() {
 
       if (!uri) throw new Error("No recording URI");
 
-      const serverUrl = useSettingsStore.getState().serverUrl;
-      const formData = new FormData();
-      formData.append("audio", { uri, type: "audio/m4a", name: "recording.m4a" } as any);
+      // base64로 읽어서 JSON으로 전송 (RN FormData + multer 호환 이슈 우회)
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
+      const serverUrl = useSettingsStore.getState().serverUrl;
       const res = await fetch(`${serverUrl}/api/voice/chat`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audio: base64, mimeType: "audio/m4a" }),
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
