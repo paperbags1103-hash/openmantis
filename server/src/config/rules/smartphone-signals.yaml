@@ -1,0 +1,34 @@
+name: battery-low-alert
+trigger:
+  type: battery_low
+reaction:
+  agent: clawire-assistant
+  approval: auto
+  channel: push
+  promptContext: |
+    배터리가 낮습니다. 사용자에게 충전을 권고하는 알림을 작성하세요.
+
+---
+name: app-morning-wakeup
+trigger:
+  type: app_foreground
+  filter: "likelyWakeUp"
+reaction:
+  agent: clawire-assistant
+  approval: auto
+  channel: push
+  promptContext: |
+    사용자가 방금 폰을 들었습니다 (5분 이상 비활성 후 활성화).
+    아침 시간(06:00-10:00)이라면 오늘의 간단한 브리핑을 제공하세요.
+    다른 시간대라면 적절한 인사를 건네세요.
+
+---
+name: calendar-upcoming-alert
+trigger:
+  type: calendar_upcoming
+reaction:
+  agent: clawire-assistant
+  approval: auto
+  channel: push
+  promptContext: |
+    30분 후 일정이 있습니다. 준비를 도울 간단한 알림을 작성하세요.

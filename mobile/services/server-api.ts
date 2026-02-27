@@ -29,6 +29,10 @@ export async function postEvent(payload: PostEventPayload) {
   return res.data;
 }
 
+export async function sendEvent(payload: PostEventPayload) {
+  return postEvent(payload);
+}
+
 export async function getRecentEvents(limit = 50): Promise<AgentEvent[]> {
   const client = getClient();
   const res = await client.get(`/api/events/recent?limit=${limit}`);
