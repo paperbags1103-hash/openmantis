@@ -1,10 +1,13 @@
 import { Stack } from "expo-router";
 import { useEffect } from "react";
-import { attachPushListener, setupPushNotificationHandler } from "../services/push-handler";
+import { attachPushListener, setupPushNotificationHandler, registerForPushNotifications } from "../services/push-handler";
 
 export default function RootLayout() {
   useEffect(() => {
     setupPushNotificationHandler();
+    registerForPushNotifications().then(token => {
+      if (token) console.log("[app] Push token ready:", token);
+    });
     const detach = attachPushListener();
     return detach;
   }, []);
