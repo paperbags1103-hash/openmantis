@@ -32,6 +32,13 @@
       "expo-router"
     ],
     "scheme": "openmantis",
-    "sdkVersion": "54.0.0"
+    "sdkVersion": "54.0.0",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "69a35948-4619-4898-8b6c-9408d84f0470"
+      }
+    },
+    "owner": "gorba1103"
   }
 }

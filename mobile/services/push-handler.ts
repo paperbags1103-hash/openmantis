@@ -32,7 +32,9 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
   }
 
   try {
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: "69a35948-4619-4898-8b6c-9408d84f0470",
+    });
     const token = tokenData.data;
     console.log("[push] Expo Push Token:", token);
     registered = true;
