@@ -1,7 +1,7 @@
-# 🦗 OpenMantis
+# 🦗 ClaWire
 
 > **Event-Driven Agent OS for Edge Devices**
-> The world changes. OpenMantis reacts.
+> The world changes. ClaWire reacts.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-v22+-green.svg)](https://nodejs.org)
@@ -9,19 +9,19 @@
 
 ---
 
-## What is OpenMantis?
+## What is ClaWire?
 
 Most agent systems wait for you to say something, or fire at a scheduled time.
 
-**OpenMantis is triggered by the world itself.**
+**ClaWire is triggered by the world itself.**
 
 | Generation | Trigger | Example |
 |---|---|---|
 | 1st gen | Human speaks | OpenClaw, ChatGPT |
 | 2nd gen | Clock ticks | Cron jobs, schedulers |
-| **3rd gen** | **World changes** | **OpenMantis** |
+| **3rd gen** | **World changes** | **ClaWire** |
 
-Your phone is an edge device. Your office, your location, competitor prices, breaking news — all of these are events. OpenMantis watches them, judges them with AI, and acts on them — without you lifting a finger.
+Your phone is an edge device. Your office, your location, competitor prices, breaking news — all of these are events. ClaWire watches them, judges them with AI, and acts on them — without you lifting a finger.
 
 ---
 
@@ -35,7 +35,7 @@ Your phone is an edge device. Your office, your location, competitor prices, bre
                │ events
                ▼
 ┌──────────────────────────────────────────┐
-│              OpenMantis Server           │
+│              ClaWire Server           │
 │                                          │
 │  Watcher → Event Bus → Rule Engine       │
 │                    ↓                     │
@@ -210,7 +210,7 @@ Competitor price drop (Watcher)
 
 ## Contributing
 
-OpenMantis is MIT licensed and open to contributions.
+ClaWire is MIT licensed and open to contributions.
 
 The easiest way to contribute: **build a new Watcher.**
 
@@ -230,4 +230,4 @@ See `WATCHER_GUIDE.md` for details.
 
 ## License
 
-MIT © 2026 OpenMantis Contributors
+MIT © 2026 ClaWire Contributors

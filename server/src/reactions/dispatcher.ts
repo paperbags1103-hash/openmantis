@@ -53,7 +53,7 @@ export class Dispatcher {
 
     const payload: OpenClawWebhookPayload = {
       message,
-      name: "OpenMantis",
+      name: "ClaWire",
       deliver: true,
       channel: this.channel,
     };
@@ -79,7 +79,7 @@ export class Dispatcher {
     const todaySummary = await this.memoryService.getTodaySummary();
 
     const lines: string[] = [
-      `## 🦟 OpenMantis 신호 감지`,
+      `## ClaWire 신호 감지`,
       ``,
       `**규칙**: ${rule.name}`,
       `**이벤트 타입**: ${event.type}`,

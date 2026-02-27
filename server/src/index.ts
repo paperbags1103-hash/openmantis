@@ -79,32 +79,34 @@ async function bootstrap(): Promise<void> {
   await ruleEngine.loadRules(join(__dirname, "config", "rules"));
   const watchers: Watcher[] = [];
 
-  const watcherConfigPath = join(__dirname, "config", "watchers", "ai-news.yaml");
-  const watcherConfigText = await readFile(watcherConfigPath, "utf8");
-  const watcherConfig = YAML.parse(watcherConfigText) as NewsWatcherConfig;
-  const pollIntervalMs = parsePollIntervalMs(watcherConfig.poll_interval);
+  if (process.env.ENABLE_WATCHERS === "true") {
+    const watcherConfigPath = join(__dirname, "config", "watchers", "ai-news.yaml");
+    const watcherConfigText = await readFile(watcherConfigPath, "utf8");
+    const watcherConfig = YAML.parse(watcherConfigText) as NewsWatcherConfig;
+    const pollIntervalMs = parsePollIntervalMs(watcherConfig.poll_interval);
 
-  for (const feed of watcherConfig.feeds ?? []) {
-    watchers.push(new NewsWatcher(feed.name, feed.url, feed.keywords, bus, pollIntervalMs));
+    for (const feed of watcherConfig.feeds ?? []) {
+      watchers.push(new NewsWatcher(feed.name, feed.url, feed.keywords, bus, pollIntervalMs));
+    }
+
+    const priceWatcherConfigPath = join(__dirname, "config", "watchers", "crypto-prices.yaml");
+    const priceWatcherConfigText = await readFile(priceWatcherConfigPath, "utf8");
+    const priceWatcherConfig = YAML.parse(priceWatcherConfigText) as PriceWatcherConfig;
+    const pricePollIntervalMs = parsePollIntervalMs(priceWatcherConfig.poll_interval);
+    const thresholdPct =
+      typeof priceWatcherConfig.threshold_pct === "number"
+        ? priceWatcherConfig.threshold_pct
+        : undefined;
+
+    watchers.push(
+      new PriceWatcher(
+        priceWatcherConfig.assets ?? [],
+        bus,
+        thresholdPct,
+        pricePollIntervalMs
+      )
+    );
   }
-
-  const priceWatcherConfigPath = join(__dirname, "config", "watchers", "crypto-prices.yaml");
-  const priceWatcherConfigText = await readFile(priceWatcherConfigPath, "utf8");
-  const priceWatcherConfig = YAML.parse(priceWatcherConfigText) as PriceWatcherConfig;
-  const pricePollIntervalMs = parsePollIntervalMs(priceWatcherConfig.poll_interval);
-  const thresholdPct =
-    typeof priceWatcherConfig.threshold_pct === "number"
-      ? priceWatcherConfig.threshold_pct
-      : undefined;
-
-  watchers.push(
-    new PriceWatcher(
-      priceWatcherConfig.assets ?? [],
-      bus,
-      thresholdPct,
-      pricePollIntervalMs
-    )
-  );
 
   const webChangeName = process.env.WEB_CHANGE_NAME;
   const webChangeUrl = process.env.WEB_CHANGE_URL;
@@ -150,7 +152,7 @@ async function bootstrap(): Promise<void> {
 
   const port = Number(process.env.PORT ?? 3000);
   const server = app.listen(port, () => {
-    console.log(`OpenMantis 서버 시작 (port ${port})`);
+    console.log(`ClaWire server started (port ${port})`);
     console.log(`OpenClaw 게이트웨이: ${process.env.OPENCLAW_GATEWAY_URL ?? "http://127.0.0.1:18789"}`);
     console.log(`Push 엔드포인트: http://localhost:${port}/api/push`);
     console.log(`신호 요약: http://localhost:${port}/api/memory/today`);
@@ -175,6 +177,6 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((error) => {
-  console.error("Failed to start OpenMantis server", error);
+  console.error("Failed to start ClaWire server", error);
   process.exit(1);
 });

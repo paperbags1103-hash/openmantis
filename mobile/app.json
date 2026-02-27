@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "OpenMantis",
-    "slug": "openmantis",
+    "name": "ClaWire",
+    "slug": "clawire",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.openmantis.app"
+      "bundleIdentifier": "com.clawire.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +23,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.openmantis.app"
+      "package": "com.clawire.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,7 +31,7 @@
     "plugins": [
       "expo-router"
     ],
-    "scheme": "openmantis",
+    "scheme": "clawire",
     "sdkVersion": "54.0.0",
     "extra": {
       "router": {},

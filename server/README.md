@@ -1,6 +1,6 @@
-# OpenMantis Server (Phase 1-A MVP)
+# ClaWire Server (Phase 1-A MVP)
 
-Minimal event-driven server for OpenMantis edge events.
+Minimal event-driven server for ClaWire edge events.
 
 ## Setup
 

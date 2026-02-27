@@ -16,7 +16,7 @@ export async function transcribeAudio(buffer: Buffer, mimetype: string): Promise
   // Node.js 18+ 내장 FormData + Blob 사용 (form-data 패키지 호환 이슈 우회)
   const mime = mimetype || "audio/m4a";
   const ext = mime.includes("m4a") ? "m4a" : mime.includes("wav") ? "wav" : "webm";
-  const blob = new Blob([buffer], { type: mime });
+  const blob = new Blob([new Uint8Array(buffer)], { type: mime });
 
   const form = new FormData();
   form.append("file", blob, `voice.${ext}`);
@@ -50,7 +50,7 @@ export async function processVoiceIntent(
     const { default: Anthropic } = await import("@anthropic-ai/sdk");
     const client = new Anthropic({ apiKey: anthropicKey });
 
-    const systemPrompt = `당신은 치레(Chire)입니다. 아부지의 AI 어시스턴트. OpenMantis 에이전트 OS를 통한 음성 대화입니다.
+    const systemPrompt = `당신은 치레(Chire)입니다. 아부지의 AI 어시스턴트. ClaWire 에이전트 OS를 통한 음성 대화입니다.
 자연스럽고 친근하게 한국어로 대답하세요. 간결하게 (2-3문장).
 특수 액션이 필요하면 마지막에 [ACTION:confirm], [ACTION:reject], [ACTION:create_rule] 추가.`;
 
@@ -65,7 +65,8 @@ export async function processVoiceIntent(
       system: systemPrompt,
     });
 
-    const text = msg.content[0].type === "text" ? msg.content[0].text : "";
+    const textBlock = msg.content.find((block) => block.type === "text");
+    const text = textBlock?.type === "text" ? textBlock.text : "";
     const action = text.includes("[ACTION:confirm]") ? "confirm"
       : text.includes("[ACTION:reject]") ? "reject"
       : text.includes("[ACTION:create_rule]") ? "create_rule"
