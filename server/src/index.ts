@@ -65,7 +65,7 @@ function parsePollIntervalMs(value: string | number | undefined): number {
 
 async function bootstrap(): Promise<void> {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: "50mb" }));
 
   const store = new SQLiteEventStore(join(__dirname, "..", "events.db"));
   const bus = new EventBus(store);
