@@ -22,3 +22,5 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setPushEnabled: (pushEnabled) => set({ pushEnabled }),
   setConnectionStatus: (connectionStatus) => set({ connectionStatus })
 }));
+
+export default useSettingsStore;

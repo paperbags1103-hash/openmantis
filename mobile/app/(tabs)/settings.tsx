@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { startGeofencing, stopGeofencing } from "../../services/location-watcher";
 import { getHealth } from "../../services/server-api";
-import { useSettingsStore } from "../../store/settings";
+import useSettingsStore from "../../store/settings";
 
 export default function SettingsScreen() {
   const {
@@ -15,6 +16,10 @@ export default function SettingsScreen() {
 
   const [serverInput, setServerInput] = useState(serverUrl);
   const [testResult, setTestResult] = useState<string>("");
+  const defaultZones = [
+    { name: "home", latitude: 37.5665, longitude: 126.978, radius: 200 },
+    { name: "company", latitude: 37.57, longitude: 126.983, radius: 150 }
+  ];
 
   useEffect(() => {
     setServerInput(serverUrl);
@@ -36,6 +41,25 @@ export default function SettingsScreen() {
       console.warn("Connection test failed", error);
       setConnectionStatus("error");
       setTestResult("❌ 연결 실패");
+    }
+  };
+
+  const onToggleLocation = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        await startGeofencing(defaultZones);
+      } else {
+        await stopGeofencing();
+      }
+      setLocationEnabled(enabled);
+    } catch (error) {
+      console.warn("Location toggle failed", error);
+      if (enabled) {
+        Alert.alert("위치 권한 필요", "위치 권한이 거부되어 GPS 감지를 시작할 수 없습니다.");
+      } else {
+        Alert.alert("오류", "GPS 감지를 중지하지 못했습니다. 다시 시도해 주세요.");
+      }
+      setLocationEnabled(false);
     }
   };
 
@@ -64,21 +88,22 @@ export default function SettingsScreen() {
 
       <Text style={styles.connectionInfo}>현재 상태: {connectionStatus}</Text>
 
-      <Text style={styles.label}>위치 센서 (UI 전용)</Text>
+      <Text style={styles.label}>위치 센서</Text>
       <View style={styles.toggleWrap}>
         <Pressable
-          onPress={() => setLocationEnabled(true)}
+          onPress={() => onToggleLocation(true)}
           style={[styles.toggleOption, locationEnabled && styles.toggleOptionActive]}
         >
           <Text style={[styles.toggleText, locationEnabled && styles.toggleTextActive]}>ON</Text>
         </Pressable>
         <Pressable
-          onPress={() => setLocationEnabled(false)}
+          onPress={() => onToggleLocation(false)}
           style={[styles.toggleOption, !locationEnabled && styles.toggleOptionActive]}
         >
           <Text style={[styles.toggleText, !locationEnabled && styles.toggleTextActive]}>OFF</Text>
         </Pressable>
       </View>
+      <Text style={styles.locationHint}>ON 시 GPS로 진입/이탈 자동 감지</Text>
     </View>
   );
 }
@@ -131,5 +156,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#111827"
   },
   toggleText: { fontWeight: "700", color: "#111827" },
-  toggleTextActive: { color: "#ffffff" }
+  toggleTextActive: { color: "#ffffff" },
+  locationHint: { marginTop: 8, fontSize: 12, color: "#6b7280" }
 });
