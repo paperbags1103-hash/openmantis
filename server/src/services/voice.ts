@@ -45,8 +45,8 @@ export async function processVoiceIntent(
 ): Promise<VoiceIntent> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  if (anthropicKey) {
-    // Claude로 처리
+  if (anthropicKey && process.env.ANTHROPIC_ENABLED === "true") {
+    // Claude로 처리 (크레딧 있을 때만)
     const { default: Anthropic } = await import("@anthropic-ai/sdk");
     const client = new Anthropic({ apiKey: anthropicKey });
 
