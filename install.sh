@@ -10,56 +10,73 @@ echo -e "${BOLD}🦗 ClaWire — Smartphone Signal Layer for OpenClaw${NC}"
 echo -e "${YELLOW}Installing...${NC}"
 echo ""
 
-# Check dependencies
 command -v node >/dev/null 2>&1 || { echo "❌ Node.js required. Install from nodejs.org"; exit 1; }
 command -v npm >/dev/null 2>&1 || { echo "❌ npm required"; exit 1; }
-command -v openclaw >/dev/null 2>&1 || { echo "❌ OpenClaw required. Install from https://openclaw.ai"; exit 1; }
 
-# Install server dependencies
 echo "📦 Installing server dependencies..."
-cd server && npm install --legacy-peer-deps --silent
+cd server
+npm install --legacy-peer-deps --silent
+npm run build
+cd ..
 echo "✅ Server dependencies installed"
 
-# Setup .env
-if [ ! -f .env ]; then
-  cp .env.example .env
-  echo "📝 Created .env from template"
-  echo -e "${YELLOW}⚠️  Edit server/.env and set OPENCLAW_HOOKS_TOKEN and EXPO_PUSH_TOKEN${NC}"
+if [ ! -f clawire.yaml ]; then
+  echo "Setting up ClaWire..."
+  read -p "Your name (for AI context): " USER_NAME
+  read -p "Timezone (e.g. Asia/Seoul): " USER_TZ
+  cat > clawire.yaml <<EOF
+user:
+  name: "${USER_NAME}"
+  timezone: "${USER_TZ}"
+  locale: "ko"
+tunnel:
+  url: ""
+server:
+  port: 3002
+  quiet_hours_start: 23
+  quiet_hours_end: 7
+openclaw:
+  hooks_url: "http://127.0.0.1:18789"
+  hooks_token: "openmantis-hook-2026"
+push:
+  expo_token: ""
+discord_log:
+  enabled: false
+  channel_id: ""
+EOF
 fi
 
-# Configure OpenClaw hooks
-echo "🔗 Configuring OpenClaw hooks..."
-TOKEN=$(grep OPENCLAW_HOOKS_TOKEN .env | cut -d= -f2)
-if [ -n "$TOKEN" ]; then
+if command -v openclaw &> /dev/null; then
+  HOOK_TOKEN=$(openssl rand -hex 8)
   openclaw config set hooks.enabled true
-  openclaw config set hooks.token "$TOKEN"
-  openclaw gateway restart 2>/dev/null || true
-  echo "✅ OpenClaw hooks configured"
+  openclaw config set hooks.token "$HOOK_TOKEN"
+  sed -i.bak "s/hooks_token: .*/hooks_token: \"$HOOK_TOKEN\"/" clawire.yaml
+  rm -f clawire.yaml.bak
+  echo "✅ OpenClaw hooks configured (token: $HOOK_TOKEN)"
+  echo "⚠️  Restart OpenClaw gateway: openclaw gateway restart"
 else
-  echo -e "${YELLOW}⚠️  Set OPENCLAW_HOOKS_TOKEN in server/.env then run: openclaw config set hooks.token YOUR_TOKEN${NC}"
+  echo "⚠️  openclaw not found. Install OpenClaw first: https://openclaw.ai"
 fi
 
-cd ..
-
-# Start with pm2 if available
-if command -v pm2 >/dev/null 2>&1; then
-  echo "🚀 Starting ClaWire server with pm2..."
-  cd server
-  pm2 delete clawire-server 2>/dev/null || true
-  pm2 start "node dist/index.js" --name clawire-server
-  pm2 save
-  echo "✅ ClaWire server running (pm2: clawire-server)"
-  cd ..
-else
-  echo -e "${YELLOW}ℹ️  Start manually: cd server && npm run build && node dist/index.js${NC}"
+echo ""
+echo "=== Cloudflare Tunnel Setup (optional, for remote access) ==="
+echo "This lets your iPhone connect when away from home WiFi."
+read -p "Set up Cloudflare Tunnel now? (y/N): " SETUP_TUNNEL
+if [[ "$SETUP_TUNNEL" =~ ^[Yy]$ ]]; then
+  if ! command -v cloudflared &> /dev/null; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      brew install cloudflare/cloudflare/cloudflared
+    elif [[ "$OSTYPE" == "linux"* ]]; then
+      echo "Download cloudflared from: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/"
+      echo "Then run: cloudflared tunnel --url http://localhost:3002"
+    fi
+  fi
+  if command -v cloudflared &> /dev/null; then
+    echo "Starting tunnel... (press Ctrl+C after you see the tunnel URL)"
+    echo "Then add the URL to clawire.yaml under tunnel.url"
+    cloudflared tunnel --url http://localhost:3002
+  fi
 fi
 
 echo ""
 echo -e "${GREEN}${BOLD}✅ ClaWire installed!${NC}"
-echo ""
-echo "Next steps:"
-echo "  1. Install the mobile app via Expo Go (scan QR from expo start)"
-echo "  2. Open ClaWire app → Settings → Enable all signal watchers"
-echo "  3. Test: curl -X POST http://localhost:3002/api/events -H 'Content-Type: application/json' -d '{\"type\":\"geofence_enter\",\"source\":\"test\",\"data\":{\"zone\":\"home\"}}'"
-echo ""
-echo "Docs: https://github.com/paperbags1103-hash/openmantis"

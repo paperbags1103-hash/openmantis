@@ -13,7 +13,10 @@ export class EventBus {
     this.handlers.push(handler);
   }
 
-  async emit(event: AgentEvent): Promise<{ accepted: boolean; duplicate: boolean }> {
+  async emit(
+    event: AgentEvent,
+    options: { notify?: boolean } = {}
+  ): Promise<{ accepted: boolean; duplicate: boolean }> {
     const hash = this.hashEvent(event);
     if (this.store.isDuplicate(hash, 60)) {
       return { accepted: false, duplicate: true };
@@ -21,8 +24,10 @@ export class EventBus {
 
     this.store.save(event, hash);
 
-    for (const handler of this.handlers) {
-      await handler(event);
+    if (options.notify !== false) {
+      for (const handler of this.handlers) {
+        await handler(event);
+      }
     }
 
     return { accepted: true, duplicate: false };

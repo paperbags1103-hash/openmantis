@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useSettingsStore } from "../store/settings";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface AgentEvent {
   id: string;
@@ -18,13 +18,22 @@ export interface PostEventPayload {
   data?: Record<string, unknown>;
 }
 
-function getClient() {
-  const serverUrl = useSettingsStore.getState().serverUrl;
+export async function getServerUrl(): Promise<string> {
+  const serverUrl = await AsyncStorage.getItem("clawire_server_url");
+  if (!serverUrl) {
+    throw new Error("ClaWire server URL not configured");
+  }
+
+  return serverUrl;
+}
+
+async function getClient() {
+  const serverUrl = await getServerUrl();
   return axios.create({ baseURL: serverUrl, timeout: 10000 });
 }
 
 export async function postEvent(payload: PostEventPayload) {
-  const client = getClient();
+  const client = await getClient();
   const res = await client.post("/api/events", payload);
   return res.data;
 }
@@ -34,19 +43,19 @@ export async function sendEvent(payload: PostEventPayload) {
 }
 
 export async function getRecentEvents(limit = 50): Promise<AgentEvent[]> {
-  const client = getClient();
+  const client = await getClient();
   const res = await client.get(`/api/events/recent?limit=${limit}`);
   return res.data.events ?? [];
 }
 
 export async function getHealth() {
-  const client = getClient();
+  const client = await getClient();
   const res = await client.get("/api/health");
   return res.data;
 }
 
 export async function approveReaction(reactionId: string, decision: "approved" | "rejected" | "deferred") {
-  const client = getClient();
+  const client = await getClient();
   const res = await client.post(`/api/reactions/${reactionId}/approve`, { decision });
   return res.data;
 }

@@ -1,0 +1,15 @@
+export const SIGNAL_COOLDOWNS: Record<string, number> = {
+  battery_low: 30 * 60 * 1000,
+  battery_charging: 5 * 60 * 1000,
+  battery_full: 60 * 60 * 1000,
+  geofence_enter: 10 * 60 * 1000,
+  geofence_exit: 10 * 60 * 1000,
+  wifi_connected: 5 * 60 * 1000,
+  wifi_disconnected: 5 * 60 * 1000,
+  wifi_state: 5 * 60 * 1000,
+  calendar_upcoming: 0,
+  app_foreground: 5 * 60 * 1000,
+  app_background: 5 * 60 * 1000,
+  motion_active: 10 * 60 * 1000,
+  motion_still: 10 * 60 * 1000,
+};

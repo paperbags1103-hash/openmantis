@@ -11,6 +11,7 @@ import { RuleEngine } from './rules/engine.js';
 import { Dispatcher } from './reactions/dispatcher.js';
 import { MemoryService } from './memory/service.js';
 import { createRoutes } from './api/routes.js';
+import { getConfig } from './config/loader.js';
 import type { Watcher } from './watchers/base.js';
 import { NewsWatcher } from './watchers/news.js';
 import { PriceWatcher } from './watchers/price.js';
@@ -66,6 +67,7 @@ function parsePollIntervalMs(value: string | number | undefined): number {
 }
 
 async function bootstrap(): Promise<void> {
+  const config = getConfig();
   const app = express();
   app.use(express.json({ limit: '50mb' }));
 
@@ -123,9 +125,12 @@ async function bootstrap(): Promise<void> {
 
   const dispatcher = new Dispatcher(
     process.env.GROQ_API_KEY,
-    process.env.EXPO_PUSH_TOKEN,
-    memoryService
+    config.push.expo_token,
+    memoryService,
+    config.openclaw.hooks_url,
+    config.openclaw.hooks_token
   );
+  await dispatcher.verifyReachable();
 
   bus.subscribe(async (event) => {
     const matches = ruleEngine.evaluate(event);
@@ -142,12 +147,12 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  app.use(createRoutes(bus, store, memoryService));
+  app.use(createRoutes(bus, store, memoryService, dispatcher, ruleEngine, getConfig));
 
-  const port = Number(process.env.PORT ?? 3000);
+  const port = config.server.port;
   const server = app.listen(port, () => {
     console.log(`ClaWire server started (port ${port})`);
-    console.log(`OpenClaw webhook: ${process.env.OPENCLAW_HOOKS_URL ?? 'http://127.0.0.1:18789'}`);
+    console.log(`OpenClaw webhook: ${config.openclaw.hooks_url}`);
     console.log(`Push endpoint: http://localhost:${port}/api/push`);
   });
 

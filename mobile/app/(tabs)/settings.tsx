@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { startGeofencing, stopGeofencing } from "../../services/location-watcher";
 import { getHealth } from "../../services/server-api";
@@ -25,8 +26,9 @@ export default function SettingsScreen() {
     setServerInput(serverUrl);
   }, [serverUrl]);
 
-  const onSaveServerUrl = () => {
+  const onSaveServerUrl = async () => {
     const cleaned = serverInput.trim();
+    await AsyncStorage.setItem("clawire_server_url", cleaned);
     setServerUrl(cleaned);
     setConnectionStatus("unknown");
     setTestResult("");
@@ -76,7 +78,7 @@ export default function SettingsScreen() {
         style={styles.input}
       />
 
-      <Pressable onPress={onSaveServerUrl} style={styles.button}>
+      <Pressable onPress={() => void onSaveServerUrl()} style={styles.button}>
         <Text style={styles.buttonText}>저장</Text>
       </Pressable>
 

@@ -1,0 +1,18 @@
+user:
+  name: "수페르"
+  timezone: "Asia/Seoul"
+  locale: "ko"
+tunnel:
+  url: ""
+server:
+  port: 3002
+  quiet_hours_start: 23
+  quiet_hours_end: 7
+openclaw:
+  hooks_url: "http://127.0.0.1:18789"
+  hooks_token: "openmantis-hook-2026"
+push:
+  expo_token: ""
+discord_log:
+  enabled: false
+  channel_id: ""

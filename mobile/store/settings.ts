@@ -11,8 +11,7 @@ type SettingsState = {
   setConnectionStatus: (status: "unknown" | "connected" | "error") => void;
 };
 
-// 아부지 Mac mini IP — Settings에서 변경 가능
-const DEFAULT_SERVER_URL = "http://192.168.219.126:3002";
+const DEFAULT_SERVER_URL = "";
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   serverUrl: DEFAULT_SERVER_URL,

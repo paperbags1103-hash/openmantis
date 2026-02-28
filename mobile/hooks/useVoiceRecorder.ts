@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
-import { useSettingsStore } from "../store/settings";
+import { getServerUrl } from "../services/server-api";
 
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false);
@@ -46,7 +46,7 @@ export function useVoiceRecorder() {
         encoding: "base64" as any,
       });
 
-      const serverUrl = useSettingsStore.getState().serverUrl;
+      const serverUrl = await getServerUrl();
       const res = await fetch(`${serverUrl}/api/voice/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

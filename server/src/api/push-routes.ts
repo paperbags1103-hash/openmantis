@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import type { ClaWireConfig } from '../config/loader.js';
 
 const PushSchema = z.object({
   message: z.string().min(1).max(500),
@@ -12,7 +13,7 @@ function isLoopback(req: Request): boolean {
   return ip === '::1' || ip === '127.0.0.1' || ip.includes('::ffff:127.');
 }
 
-export function createPushRouter(pushToken: string | undefined): Router {
+export function createPushRouter(getConfig: () => ClaWireConfig): Router {
   const router = Router();
 
   router.post('/api/push', async (req: Request, res: Response) => {
@@ -23,6 +24,7 @@ export function createPushRouter(pushToken: string | undefined): Router {
     if (!parsed.success) {
       return res.status(400).json({ ok: false, error: parsed.error.flatten() });
     }
+    const pushToken = getConfig().push.expo_token;
     if (!pushToken) {
       return res.status(503).json({ ok: false, error: 'Push token not configured' });
     }
