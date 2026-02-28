@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { startGeofencing, stopGeofencing } from "../../services/location-watcher";
+import { DEFAULT_ZONES, startGeofencing, stopGeofencing } from "../../services/location-watcher";
 import { getHealth } from "../../services/server-api";
 import useSettingsStore from "../../store/settings";
 
@@ -17,11 +17,6 @@ export default function SettingsScreen() {
 
   const [serverInput, setServerInput] = useState(serverUrl);
   const [testResult, setTestResult] = useState<string>("");
-  const defaultZones = [
-    { name: "home", latitude: 37.5665, longitude: 126.978, radius: 200 },
-    { name: "company", latitude: 37.57, longitude: 126.983, radius: 150 }
-  ];
-
   useEffect(() => {
     setServerInput(serverUrl);
   }, [serverUrl]);
@@ -49,7 +44,7 @@ export default function SettingsScreen() {
   const onToggleLocation = async (enabled: boolean) => {
     try {
       if (enabled) {
-        await startGeofencing(defaultZones);
+        await startGeofencing(DEFAULT_ZONES);
       } else {
         await stopGeofencing();
       }
@@ -57,9 +52,9 @@ export default function SettingsScreen() {
     } catch (error) {
       console.warn("Location toggle failed", error);
       if (enabled) {
-        Alert.alert("위치 권한 필요", "위치 권한이 거부되어 GPS 감지를 시작할 수 없습니다.");
+        Alert.alert("위치 권한 필요", "위치 권한이 거부되어 지오펜싱 감지를 시작할 수 없습니다.");
       } else {
-        Alert.alert("오류", "GPS 감지를 중지하지 못했습니다. 다시 시도해 주세요.");
+        Alert.alert("오류", "지오펜싱 감지를 중지하지 못했습니다. 다시 시도해 주세요.");
       }
       setLocationEnabled(false);
     }
@@ -105,7 +100,7 @@ export default function SettingsScreen() {
           <Text style={[styles.toggleText, !locationEnabled && styles.toggleTextActive]}>OFF</Text>
         </Pressable>
       </View>
-      <Text style={styles.locationHint}>ON 시 GPS로 진입/이탈 자동 감지</Text>
+      <Text style={styles.locationHint}>ON 시 지오펜싱으로 집/회사 진입 및 이탈을 감지합니다.</Text>
     </View>
   );
 }

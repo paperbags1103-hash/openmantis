@@ -5,15 +5,29 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.clawire.app"
+      "supportsTablet": false,
+      "bundleIdentifier": "ai.openclaw.clawire",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ClaWire uses your location to detect when you arrive or leave home and work, so your AI assistant can send you relevant notifications. Your location is sent only to your own ClaWire server — never to third parties.",
+        "NSLocationWhenInUseUsageDescription": "ClaWire uses your location to detect when you arrive or leave home and work zones.",
+        "NSLocationAlwaysUsageDescription": "ClaWire needs background location to detect geofence events while the app is not in use.",
+        "NSCalendarsUsageDescription": "ClaWire reads your calendar to alert you before upcoming events. Your calendar data is sent only to your own ClaWire server.",
+        "NSCalendarsFullAccessUsageDescription": "ClaWire reads your calendar to alert you before upcoming events. Your calendar data is sent only to your own ClaWire server.",
+        "NSMotionUsageDescription": "ClaWire uses motion data to detect when you are active or stationary.",
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,13 +37,26 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.clawire.app"
+      "package": "ai.openclaw.clawire"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "ClaWire uses your location to detect when you arrive or leave home and work, so your AI assistant can send you relevant notifications. Your location is sent only to your own ClaWire server."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "ClaWire reads your calendar to alert you before upcoming events."
+        }
+      ],
+      "expo-notifications"
     ],
     "scheme": "clawire",
     "sdkVersion": "54.0.0",
