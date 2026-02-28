@@ -2,7 +2,7 @@ import * as Battery from "expo-battery";
 import { sendEvent } from "./server-api";
 
 export class BatteryWatcher {
-  private subscription: Battery.BatteryStateSubscription | null = null;
+  private subscription: ReturnType<typeof Battery.addBatteryStateListener> | null = null;
   private levelInterval: ReturnType<typeof setInterval> | null = null;
 
   async start() {

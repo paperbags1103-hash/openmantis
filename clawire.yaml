@@ -16,3 +16,14 @@ push:
 discord_log:
   enabled: false
   channel_id: ""
+zones:
+  - identifier: "home"
+    label: "집"
+    latitude: 0.0
+    longitude: 0.0
+    radius: 200
+  - identifier: "company"
+    label: "회사"
+    latitude: 0.0
+    longitude: 0.0
+    radius: 200

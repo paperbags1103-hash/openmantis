@@ -27,6 +27,13 @@ export interface ClaWireConfig {
     enabled: boolean;
     channel_id: string;
   };
+  zones?: Array<{
+    identifier: string;
+    label: string;
+    latitude: number;
+    longitude: number;
+    radius: number;
+  }>;
 }
 
 const configPath = resolve(process.cwd(), '..', 'clawire.yaml');
