@@ -7,8 +7,8 @@ import type { ClaWireConfig } from '../config/loader.js';
 import { updateConfig } from '../config/loader.js';
 
 const PairSchema = z.object({
-  expo_push_token: z.string().min(1),
-  setup_token: z.string().min(1),
+  expo_push_token: z.string().default(''),
+  setup_token: z.string().min(1).optional(),
 });
 
 function detectServerIp(): string {
@@ -64,7 +64,7 @@ export function createSetupRouter(getConfig: () => ClaWireConfig): Router {
       return res.status(400).json({ ok: false, error: parsed.error.flatten() });
     }
 
-    if (!activeSetupToken || parsed.data.setup_token !== activeSetupToken) {
+    if (parsed.data.setup_token && parsed.data.setup_token !== activeSetupToken) {
       return res.status(403).json({ ok: false, error: 'Invalid setup token' });
     }
 
@@ -76,7 +76,9 @@ export function createSetupRouter(getConfig: () => ClaWireConfig): Router {
       },
     }));
 
-    activeSetupToken = null;
+    if (parsed.data.setup_token) {
+      activeSetupToken = null;
+    }
     return res.json({ ok: true, message: 'Paired successfully' });
   });
 

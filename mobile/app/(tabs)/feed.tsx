@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ConnectionBanner } from "../../components/ConnectionBanner";
 import { AgentEvent, getRecentEvents } from "../../services/server-api";
 import { useSettingsStore } from "../../store/settings";
 
@@ -24,6 +25,7 @@ export default function FeedScreen() {
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const serverUrl = useSettingsStore((state) => state.serverUrl);
   const setConnectionStatus = useSettingsStore((state) => state.setConnectionStatus);
 
   const fetchRecent = useCallback(async () => {
@@ -79,6 +81,7 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
+      <ConnectionBanner serverUrl={serverUrl} />
       <Text style={styles.title}>이벤트 피드</Text>
       <FlatList
         data={feedData}

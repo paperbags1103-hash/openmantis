@@ -1,3 +1,4 @@
+import { getConfig } from '../config/loader.js';
 import type { MemoryService } from '../memory/service.js';
 import type { AgentEvent } from '../types/event.js';
 import type { Rule } from '../types/rule.js';
@@ -153,5 +154,35 @@ export class Dispatcher {
         events: jobs.map((job) => job.event),
       }),
     });
+
+    this.logToDiscord(primaryEvent);
+  }
+
+  private logToDiscord(event: AgentEvent): void {
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+    if (!botToken) {
+      return;
+    }
+
+    const config = getConfig();
+    if (!config.discord_log.enabled || !config.discord_log.channel_id) {
+      return;
+    }
+
+    const summarySource = JSON.stringify(event.data ?? {}).slice(0, 160) || 'no payload';
+    const time = new Date(event.timestamp).toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const content = `📡 **ClaWire** | ${event.type} @ ${time}\n> ${summarySource}`;
+
+    void fetch(`https://discord.com/api/v10/channels/${config.discord_log.channel_id}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bot ${botToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content }),
+    }).catch(() => {});
   }
 }
