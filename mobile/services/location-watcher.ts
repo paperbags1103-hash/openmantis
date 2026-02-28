@@ -1,18 +1,18 @@
-import { postEvent } from "./server-api";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
+import { sendEvent } from "./server-api";
 import { loadZones, type Zone } from "./zones";
 
 const GEOFENCING_TASK = "clawire-geofencing-task";
 
 const normalizeZones = (zones: Zone[]) => {
   return zones.map((zone) => ({
-    identifier: zone.identifier,
+    identifier: zone.id,
     latitude: zone.latitude,
     longitude: zone.longitude,
     radius: zone.radius,
     notifyOnEnter: true,
-    notifyOnExit: true
+    notifyOnExit: true,
   }));
 };
 
@@ -30,17 +30,21 @@ if (!TaskManager.isTaskDefined(GEOFENCING_TASK)) {
 
     const eventType =
       data.eventType === Location.GeofencingEventType.Enter ? "geofence_enter" : "geofence_exit";
+    const zones = await loadZones();
+    const zone = zones.find((item) => item.id === data.region.identifier);
 
-    await postEvent({
+    await sendEvent({
       type: eventType,
-      source: "mobile/geofence",
+      source: "mobile/gps",
       severity: data.eventType === Location.GeofencingEventType.Enter ? "medium" : "low",
       data: {
-        zone_name: data.region.identifier,
+        zone_id: data.region.identifier,
+        zone_label: zone?.label ?? data.region.identifier,
+        zone_emoji: zone?.emoji ?? "📍",
         latitude: data.region.latitude,
         longitude: data.region.longitude,
-        radius: data.region.radius
-      }
+        radius: data.region.radius,
+      },
     });
   });
 }
@@ -54,14 +58,13 @@ export const startGeofencing = async (zones?: Zone[]) => {
 
   const resolvedZones = zones && zones.length > 0 ? zones : await loadZones();
   if (resolvedZones.length === 0) {
-    console.warn("[ClaWire] No zones configured. Open app settings to set home/work locations.");
+    console.warn("[ClaWire] No zones configured. Geofencing not registered.");
     await stopGeofencing();
     return;
   }
 
-  const normalizedZones = normalizeZones(resolvedZones);
   await stopGeofencing();
-  await Location.startGeofencingAsync(GEOFENCING_TASK, normalizedZones);
+  await Location.startGeofencingAsync(GEOFENCING_TASK, normalizeZones(resolvedZones));
 };
 
 export const stopGeofencing = async () => {

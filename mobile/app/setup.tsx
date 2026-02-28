@@ -15,8 +15,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { reloadZones } from "../services/location-watcher";
-import { saveZone, type Zone } from "../services/zones";
+import { startAllWatchers } from "../services";
 import { useSettingsStore } from "../store/settings";
 
 interface SetupPayload {
@@ -24,12 +23,7 @@ interface SetupPayload {
   token: string;
 }
 
-type SetupStep = 1 | 2 | 3 | 4 | 5;
-
-type SavedZoneState = {
-  zone: Zone;
-  description: string;
-};
+type SetupStep = 1 | 2 | 3 | 4;
 
 const SERVER_URL_KEY = "clawire_server_url";
 
@@ -51,39 +45,6 @@ function normalizeServerUrl(value: string): string {
   }
 
   return parsed.toString().replace(/\/+$/, "");
-}
-
-function formatCoordinates(latitude: number, longitude: number): string {
-  return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-}
-
-function formatAddress(
-  address: Location.LocationGeocodedAddress | null,
-  latitude: number,
-  longitude: number
-): string {
-  if (!address) {
-    return formatCoordinates(latitude, longitude);
-  }
-
-  const parts = [
-    address.name,
-    address.street,
-    address.district,
-    address.city,
-    address.region,
-  ].filter(Boolean);
-
-  return parts.length > 0 ? parts.join(" ") : formatCoordinates(latitude, longitude);
-}
-
-async function resolveAddress(latitude: number, longitude: number): Promise<string> {
-  try {
-    const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
-    return formatAddress(address ?? null, latitude, longitude);
-  } catch {
-    return formatCoordinates(latitude, longitude);
-  }
 }
 
 async function getExpoPushToken(): Promise<string> {
@@ -124,40 +85,6 @@ async function requestAllPermissions(): Promise<void> {
   await Location.requestBackgroundPermissionsAsync();
 }
 
-function ZoneCard({
-  emoji,
-  title,
-  buttonLabel,
-  savedZone,
-  onSave,
-  busy,
-}: {
-  emoji: string;
-  title: string;
-  buttonLabel: string;
-  savedZone?: SavedZoneState;
-  onSave: () => void;
-  busy: boolean;
-}) {
-  return (
-    <View style={styles.zoneCard}>
-      <Text style={styles.zoneEmoji}>{emoji}</Text>
-      <Text style={styles.zoneTitle}>{title}</Text>
-      <Pressable style={styles.secondaryButton} onPress={onSave} disabled={busy}>
-        <Text style={styles.secondaryButtonText}>{buttonLabel}</Text>
-      </Pressable>
-      {savedZone ? (
-        <View style={styles.zoneSavedWrap}>
-          <Text style={styles.zoneSavedTitle}>✅ 저장 완료</Text>
-          <Text style={styles.zoneSavedText}>{savedZone.description}</Text>
-        </View>
-      ) : (
-        <Text style={styles.zoneHint}>현재 위치를 기준으로 존을 저장합니다.</Text>
-      )}
-    </View>
-  );
-}
-
 export default function SetupScreen() {
   const [step, setStep] = useState<SetupStep>(1);
   const [permission, requestPermission] = useCameraPermissions();
@@ -167,10 +94,7 @@ export default function SetupScreen() {
   const [setupUrl, setSetupUrl] = useState("");
   const [setupToken, setSetupToken] = useState<string | undefined>(undefined);
   const [scanLocked, setScanLocked] = useState(false);
-  const [savedHome, setSavedHome] = useState<SavedZoneState | undefined>(undefined);
-  const [savedCompany, setSavedCompany] = useState<SavedZoneState | undefined>(undefined);
   const setServerUrl = useSettingsStore((state) => state.setServerUrl);
-  const savedZoneCount = (savedHome ? 1 : 0) + (savedCompany ? 1 : 0);
 
   const proceedToPermissions = useCallback(
     async (url: string, token?: string) => {
@@ -246,46 +170,13 @@ export default function SetupScreen() {
     }
   }, [setServerUrl, setupToken, setupUrl]);
 
-  const saveCurrentZone = useCallback(
-    async (identifier: "home" | "company", label: "집" | "회사") => {
-      setBusy(true);
-
-      try {
-        const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        const zone: Zone = {
-          identifier,
-          label,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          radius: 200,
-        };
-        const description = await resolveAddress(zone.latitude, zone.longitude);
-        await saveZone(zone);
-
-        const saved = { zone, description };
-        if (identifier === "home") {
-          setSavedHome(saved);
-        } else {
-          setSavedCompany(saved);
-        }
-      } catch (error) {
-        Alert.alert("위치 저장 실패", error instanceof Error ? error.message : "현재 위치를 가져오지 못했습니다");
-      } finally {
-        setBusy(false);
-      }
-    },
-    []
-  );
-
   const finishSetup = useCallback(async () => {
     setBusy(true);
 
     try {
-      await reloadZones();
+      await startAllWatchers();
     } catch (error) {
-      console.warn("[ClaWire] Failed to reload zones after setup:", error);
+      console.warn("[ClaWire] Failed to start watchers after setup:", error);
     } finally {
       setBusy(false);
       router.replace("/(tabs)/feed");
@@ -373,7 +264,7 @@ export default function SetupScreen() {
           <View style={styles.permissionCard}>
             <Text style={styles.permissionTitle}>위치 권한</Text>
             <Text style={styles.permissionText}>
-              위치 권한은 집/회사 도착·출발 감지에 사용됩니다.{"\n"}데이터는 내 서버에만 전송됩니다.
+              위치 권한은 등록한 장소 감지에 사용됩니다.{"\n"}데이터는 내 서버에만 전송됩니다.
             </Text>
           </View>
 
@@ -385,45 +276,11 @@ export default function SetupScreen() {
 
       {step === 4 ? (
         <View style={styles.card}>
-          <Text style={styles.stepTitle}>내 위치 등록</Text>
-          <Text style={styles.stepDescription}>집과 회사를 등록하면 AI가 도착·출발을 감지합니다</Text>
-
-          <View style={styles.zoneCardGrid}>
-            <ZoneCard
-              emoji="🏠"
-              title="집"
-              buttonLabel="지금 여기가 집이에요"
-              savedZone={savedHome}
-              onSave={() => void saveCurrentZone("home", "집")}
-              busy={busy}
-            />
-            <ZoneCard
-              emoji="🏢"
-              title="회사"
-              buttonLabel="지금 여기가 회사예요"
-              savedZone={savedCompany}
-              onSave={() => void saveCurrentZone("company", "회사")}
-              busy={busy}
-            />
-          </View>
-
-          <Pressable style={styles.skipButton} onPress={() => setStep(5)} disabled={busy}>
-            <Text style={styles.skipButtonText}>나중에 설정</Text>
-          </Pressable>
-
-          <Pressable style={styles.primaryButton} onPress={() => setStep(5)} disabled={busy}>
-            <Text style={styles.primaryButtonText}>다음</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {step === 5 ? (
-        <View style={styles.card}>
           <Text style={styles.stepTitle}>설정 완료!</Text>
-          <Text style={styles.stepDescription}>
-            서버 연결과 권한 설정이 끝났습니다. 저장된 위치 존은 {savedZoneCount}개입니다.
+          <Text style={styles.stepDescription}>서버 연결과 권한 설정이 끝났습니다.</Text>
+          <Text style={styles.completionText}>
+            앱 설정 탭에서 원하는 장소를 자유롭게 등록할 수 있습니다
           </Text>
-          <Text style={styles.completionText}>설정에서 언제든 집/회사 위치와 추가 존을 다시 관리할 수 있습니다.</Text>
 
           <Pressable style={styles.primaryButton} onPress={() => void finishSetup()} disabled={busy}>
             <Text style={styles.primaryButtonText}>시작하기</Text>
@@ -510,16 +367,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
   },
-  secondaryButton: {
-    backgroundColor: "#e0f2fe",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    color: "#075985",
-    fontWeight: "800",
-  },
   linkButton: {
     paddingVertical: 10,
     alignItems: "center",
@@ -553,44 +400,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: "#4b5563",
-  },
-  zoneCardGrid: {
-    gap: 12,
-  },
-  zoneCard: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 18,
-    padding: 18,
-  },
-  zoneEmoji: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
-  zoneTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#111827",
-    marginBottom: 12,
-  },
-  zoneHint: {
-    marginTop: 12,
-    fontSize: 13,
-    lineHeight: 18,
-    color: "#6b7280",
-  },
-  zoneSavedWrap: {
-    marginTop: 12,
-    gap: 4,
-  },
-  zoneSavedTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#047857",
-  },
-  zoneSavedText: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: "#374151",
   },
   completionText: {
     fontSize: 14,

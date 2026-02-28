@@ -1,18 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface Zone {
-  identifier: string;
+  id: string;
   label: string;
+  emoji: string;
   latitude: number;
   longitude: number;
   radius: number;
+  createdAt: number;
 }
 
-const ZONES_KEY = "clawire_zones";
+const ZONES_KEY = "clawire_zones_v2";
 
 export async function saveZone(zone: Zone): Promise<void> {
   const existing = await loadZones();
-  const updated = existing.filter((item) => item.identifier !== zone.identifier);
+  const updated = existing.filter((item) => item.id !== zone.id);
   updated.push(zone);
   await AsyncStorage.setItem(ZONES_KEY, JSON.stringify(updated));
 }
@@ -30,15 +32,14 @@ export async function loadZones(): Promise<Zone[]> {
   }
 }
 
-export async function removeZone(identifier: string): Promise<void> {
+export async function deleteZone(id: string): Promise<void> {
   const existing = await loadZones();
   await AsyncStorage.setItem(
     ZONES_KEY,
-    JSON.stringify(existing.filter((zone) => zone.identifier !== identifier))
+    JSON.stringify(existing.filter((zone) => zone.id !== id))
   );
 }
 
-export async function hasZones(): Promise<boolean> {
-  const zones = await loadZones();
-  return zones.length > 0;
+export function createZoneId(): string {
+  return `zone_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
